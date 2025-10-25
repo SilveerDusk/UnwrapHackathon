@@ -2,6 +2,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from post_utils.redditCaller import RedditCaller
+from tqdm import tqdm
 
 def main():
     """Main function - complete pipeline for fetching, processing, and storing Reddit data"""
@@ -23,14 +24,9 @@ def main():
         stored_comments = 0
         errors = []
 
-        for i, post in enumerate(posts, 1):
+        for post in tqdm(posts):
             try:
-                print(f"Processing post {i}/{len(posts)}: {post['title'][:50]}...")
-                
-                # Add missing fields for processing
-                post["permalink"] = f"https://reddit.com/r/{subreddit_name}/comments/{post['id']}/"
-                post["is_self"] = bool(post.get("selftext", ""))
-                post["over_18"] = False  # Default value
+                #print(f"Processing post {i}/{len(posts)}: {post['title'][:50]}...")
                 
                 # Process post with embedding
                 processed_post = caller.process_post(post)
@@ -38,20 +34,16 @@ def main():
                 # Store post in database
                 caller.db_manager.insert_post(processed_post)
                 stored_posts += 1
-                print(f"Stored post: {post['id']}")
+                #print(f"Stored post: {post['id']}")
                 
                 # Step 3: Fetch comments for this post
-                print(f"Fetching comments for post {post['id']}...")
+                #print(f"Fetching comments for post {post['id']}...")
                 comments = caller.fetch_comments(post['id'])
-                print(f"Found {len(comments)} comments")
+                #print(f"Found {len(comments)} comments")
                 
                 # Step 4: Process and store comments
                 for comment in comments:
                     try:
-                        # Add missing fields for processing
-                        comment["subreddit"] = subreddit_name
-                        comment["permalink"] = comment.get("url", "")
-                        
                         # Process comment with embedding
                         processed_comment = caller.process_comment(comment)
                         

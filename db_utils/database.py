@@ -10,8 +10,9 @@ from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging based on an environment variable
+ENABLE_LOGGING = os.getenv("ENABLE_LOGGING", "false").lower() == "true"
+logging.basicConfig(level=logging.INFO if ENABLE_LOGGING else logging.CRITICAL)
 logger = logging.getLogger(__name__)
 
 class MongoDBConnection:
@@ -89,7 +90,7 @@ class RedditDataManager:
             post_data['inserted_at'] = datetime.now(timezone.utc)
             
             result = self.mongo.posts_collection.insert_one(post_data)
-            logger.info(f"Inserted post {post_data['id']} with ID {result.inserted_id}")
+            #logger.info(f"Inserted post {post_data['id']} with ID {result.inserted_id}")
             return str(result.inserted_id)
         except Exception as e:
             logger.error(f"Failed to insert post {post_data.get('id', 'unknown')}: {e}")
@@ -104,7 +105,7 @@ class RedditDataManager:
                 post['inserted_at'] = datetime.now(timezone.utc)
             
             result = self.mongo.posts_collection.insert_many(posts_data)
-            logger.info(f"Inserted {len(result.inserted_ids)} posts")
+            #logger.info(f"Inserted {len(result.inserted_ids)} posts")
             return [str(id) for id in result.inserted_ids]
         except Exception as e:
             logger.error(f"Failed to insert posts batch: {e}")
@@ -118,7 +119,7 @@ class RedditDataManager:
             comment_data['inserted_at'] = datetime.now(timezone.utc)
             
             result = self.mongo.comments_collection.insert_one(comment_data)
-            logger.info(f"Inserted comment {comment_data['id']} with ID {result.inserted_id}")
+            #logger.info(f"Inserted comment {comment_data['id']} with ID {result.inserted_id}")
             return str(result.inserted_id)
         except Exception as e:
             logger.error(f"Failed to insert comment {comment_data.get('id', 'unknown')}: {e}")
@@ -133,7 +134,7 @@ class RedditDataManager:
                 comment['inserted_at'] = datetime.now(timezone.utc)
             
             result = self.mongo.comments_collection.insert_many(comments_data)
-            logger.info(f"Inserted {len(result.inserted_ids)} comments")
+            #logger.info(f"Inserted {len(result.inserted_ids)} comments")
             return [str(id) for id in result.inserted_ids]
         except Exception as e:
             logger.error(f"Failed to insert comments batch: {e}")
@@ -352,4 +353,4 @@ class RedditDataManager:
         except Exception as e:
             logger.error(f"Failed to search posts with top comments: {e}")
             return {"posts_with_comments": [], "total_posts": 0, "total_comments": 0}
-    
+

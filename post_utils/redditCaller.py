@@ -176,9 +176,6 @@ class RedditCaller:
                 "num_comments": post_data.get("num_comments", 0),
                 "author": post_data.get("author", ""),
                 "url": post_data.get("url", ""),
-                "permalink": post_data.get("permalink", ""),
-                "is_self": post_data.get("is_self", False),
-                "over_18": post_data.get("over_18", False),
                 "stickied": post_data.get("stickied", False),
                 "embedding": embedding
             }
@@ -201,11 +198,9 @@ class RedditCaller:
                 "id": comment_data.get("id"),
                 "body": comment_data.get("body", ""),
                 "post_id": comment_data.get("post_id"),
-                "subreddit": comment_data.get("subreddit", ""),
                 "created_utc": comment_data.get("created_utc"),
                 "score": comment_data.get("score", 0),
                 "author": comment_data.get("author", ""),
-                "permalink": comment_data.get("permalink", ""),
                 "is_submitter": comment_data.get("is_submitter", False),
                 "embedding": embedding
             }
