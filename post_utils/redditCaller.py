@@ -17,16 +17,43 @@ def fetch_posts(subreddit, limit=100, after=None):
   posts = []
 
   for submission in subreddit.new(limit=limit, params={"after": None}):
+    post_id = submission.id
+    post_title = submission.title
+    post_creator = submission.created_utc
+    post_score = submission.score
+    post_num_comments = submission.num_comments
+    selftext = submission.selftext
+
+    if post_num_comments > 0:
+      post_comments = fetch_comments(post_id)
+      print(f"Fetched {len(post_comments)} comments for post ID {post_id}")
+
     posts.append({
-      "id": submission.id,
-      "title": submission.title,
-      "created_utc": submission.created_utc,
-      "score": submission.score,
-      "num_comments": submission.num_comments,
-      "selftext": submission.selftext
+      "id": post_id,
+      "title": post_title,
+      "created_utc": post_creator,
+      "score": post_score,
+      "num_comments": post_num_comments,
+      "selftext": selftext
     })
 
   return posts, submission.name  # return 'after' for pagination
+
+def fetch_comments(post_id):
+  """Fetch comments for a given post ID."""
+  submission = reddit.submission(id=post_id)
+  submission.comments.replace_more(limit=0)
+  comments = []
+
+  for comment in submission.comments.list():
+    comments.append({
+      "id": comment.id,
+      "created_utc": comment.created_utc,
+      "score": comment.score,
+      "body": comment.body
+    })
+
+  return comments
 
 def main():
   #add an arg for the number of posts to grab, round it up to a multiple of 100
