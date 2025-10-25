@@ -6,7 +6,7 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 from dotenv import load_dotenv
 import logging
-from reddit_scraper import RedditScraper
+from reddit_processor import RedditProcessor
 
 load_dotenv()
 
@@ -198,8 +198,9 @@ class RedditDataManager:
         This ensures comments are related to the posts in the results.
         """
         try:
-            scraper = RedditScraper()
-            query_embedding = scraper.generate_embedding(query)
+            # Generate query embedding
+            processor = RedditProcessor()
+            query_embedding = processor.generate_embedding(query)
             
             # Search posts first
             posts_pipeline = [
@@ -274,9 +275,9 @@ class RedditDataManager:
         """
         try:
             # Generate query embedding
-            from reddit_scraper import RedditScraper
-            scraper = RedditScraper()
-            query_embedding = scraper.generate_embedding(query)
+            from reddit_processor import RedditProcessor
+            processor = RedditProcessor()
+            query_embedding = processor.generate_embedding(query)
             
             # Search posts first
             posts_pipeline = [
