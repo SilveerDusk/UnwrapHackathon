@@ -13,7 +13,7 @@ load_dotenv()
 reddit = praw.Reddit(
     client_id=os.getenv("CLIENT_ID"),
     client_secret=os.getenv("CLIENT_SECRET"),
-    user_agent="bot-score-backend/0.1 by wkmp26_dev"
+    user_agent="bot detection unwrapathon"
 )
 
 def fetch_user_data(username, limit=50):
