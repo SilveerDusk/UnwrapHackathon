@@ -1,20 +1,13 @@
 import requests
 
-headers = {"User-Agent": "my_reddit_app:v1.0 (by u/YOUR_USERNAME)"}
-#the limit seems to be capped at 100, so we can only get 100 posts at a time
-url = "https://www.reddit.com/r/uberdrivers/new.json?limit=10000&after=t3_1oevibm"
-response = requests.get(url, headers=headers)
-data = response.json()
+headers = {"User-Agent": "my_reddit_app:v1.0 (by u/SilveerDusk)"}
 
-for post in data["data"]["children"]:
-    print(post["data"]["title"])
-
-print("Total Number of Posts Fetched: ", len(data["data"]["children"]))
-print(data["data"]["after"])
-
-def fetch_posts(subreddit, limit=100):
+def fetch_posts(subreddit, limit=100, after=None):
   """Fetch latest posts from a subreddit."""
-  url = f"https://www.reddit.com/r/{subreddit}/new.json?limit={limit}"
+  if after:
+    url = f"https://www.reddit.com/r/{subreddit}/new.json?limit={limit}&after={after}"
+  else:
+    url = f"https://www.reddit.com/r/{subreddit}/new.json?limit={limit}"
   response = requests.get(url, headers=headers)
   data = response.json()
 
@@ -27,6 +20,21 @@ def fetch_posts(subreddit, limit=100):
       "score": post["data"]["score"],
       "num_comments": post["data"]["num_comments"]
     })
-    
-  return posts
 
+  return posts, data["data"]["after"]
+
+def main():
+  subreddit = "uberdrivers"
+
+  posts = []
+  for i in range(10):
+    posts_batch, after = fetch_posts(subreddit, limit=100, after=None if i == 0 else after)
+    posts.extend(posts_batch)
+    if not after:
+      break
+
+  for post in posts:
+    print(f"{post['title']} (Score: {post['score']}, Comments: {post['num_comments']})")
+
+if __name__ == "__main__":
+  main()
