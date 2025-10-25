@@ -6,10 +6,7 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 from dotenv import load_dotenv
 import logging
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from post_utils.redditCaller import RedditCaller
+from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 
@@ -54,6 +51,35 @@ class MongoDBConnection:
 class RedditDataManager:
     def __init__(self):
         self.mongo = MongoDBConnection()
+        self.embedding_model = None
+        self._load_embedding_model()
+    
+    def _load_embedding_model(self):
+        """Load the sentence transformer model for embeddings"""
+        try:
+            logger.info("Loading embedding model...")
+            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+            logger.info("Embedding model loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load embedding model: {e}")
+            raise
+    
+    def generate_embedding(self, text: str) -> List[float]:
+        """Generate embedding for text using sentence transformers"""
+        try:
+            if not text or text.strip() == "":
+                return [0.0] * 384  # Return zero vector for empty text
+            
+            # Truncate very long texts to avoid memory issues
+            if len(text) > 1000:
+                text = text[:1000]
+            
+            embedding = self.embedding_model.encode(text)
+            return embedding.tolist()
+            
+        except Exception as e:
+            logger.error(f"Failed to generate embedding: {e}")
+            return [0.0] * 384
     
     def insert_post(self, post_data: Dict) -> str:
         """Insert a single post into the database"""
@@ -202,8 +228,7 @@ class RedditDataManager:
         """
         try:
             # Generate query embedding
-            caller = RedditCaller()
-            query_embedding = caller.generate_embedding(query)
+            query_embedding = self.generate_embedding(query)
             
             # Search posts first
             posts_pipeline = [
@@ -278,8 +303,7 @@ class RedditDataManager:
         """
         try:
             # Generate query embedding
-            caller = RedditCaller()
-            query_embedding = caller.generate_embedding(query)
+            query_embedding = self.generate_embedding(query)
             
             # Search posts first
             posts_pipeline = [

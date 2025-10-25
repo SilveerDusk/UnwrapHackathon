@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from post_utils.redditCaller import RedditCaller
 
 def main():
@@ -24,6 +27,11 @@ def main():
             try:
                 print(f"Processing post {i}/{len(posts)}: {post['title'][:50]}...")
                 
+                # Add missing fields for processing
+                post["permalink"] = f"https://reddit.com/r/{subreddit_name}/comments/{post['id']}/"
+                post["is_self"] = bool(post.get("selftext", ""))
+                post["over_18"] = False  # Default value
+                
                 # Process post with embedding
                 processed_post = caller.process_post(post)
                 
@@ -40,6 +48,10 @@ def main():
                 # Step 4: Process and store comments
                 for comment in comments:
                     try:
+                        # Add missing fields for processing
+                        comment["subreddit"] = subreddit_name
+                        comment["permalink"] = comment.get("url", "")
+                        
                         # Process comment with embedding
                         processed_comment = caller.process_comment(comment)
                         
