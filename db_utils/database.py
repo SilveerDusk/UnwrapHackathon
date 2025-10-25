@@ -6,7 +6,10 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 from dotenv import load_dotenv
 import logging
-from reddit_processor import RedditProcessor
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from post_utils.redditCaller import RedditCaller
 
 load_dotenv()
 
@@ -199,8 +202,8 @@ class RedditDataManager:
         """
         try:
             # Generate query embedding
-            processor = RedditProcessor()
-            query_embedding = processor.generate_embedding(query)
+            caller = RedditCaller()
+            query_embedding = caller.generate_embedding(query)
             
             # Search posts first
             posts_pipeline = [
@@ -275,9 +278,8 @@ class RedditDataManager:
         """
         try:
             # Generate query embedding
-            from reddit_processor import RedditProcessor
-            processor = RedditProcessor()
-            query_embedding = processor.generate_embedding(query)
+            caller = RedditCaller()
+            query_embedding = caller.generate_embedding(query)
             
             # Search posts first
             posts_pipeline = [
@@ -327,76 +329,3 @@ class RedditDataManager:
             logger.error(f"Failed to search posts with top comments: {e}")
             return {"posts_with_comments": [], "total_posts": 0, "total_comments": 0}
     
-    # Use in the future for LLM analysis to get insights from the post and comments - CHECK LATER
-    
-    # def get_topic_insights(self, subreddit: str, start_date: datetime, end_date: datetime,
-    #                       include_bots: bool = True) -> Dict:
-    #     """Get aggregated insights for a subreddit in a date range"""
-    #     try:
-    #         posts = self.get_posts_by_date_range(subreddit, start_date, end_date, include_bots)
-    #         comments = self.get_comments_by_date_range(subreddit, start_date, end_date, include_bots)
-            
-    #         # Calculate basic statistics
-    #         total_posts = len(posts)
-    #         total_comments = len(comments)
-    #         total_score = sum(post.get('score', 0) for post in posts)
-    #         avg_score = total_score / total_posts if total_posts > 0 else 0
-            
-    #         # Count bot vs human content
-    #         bot_posts = sum(1 for post in posts if post.get('is_bot', False))
-    #         bot_comments = sum(1 for comment in comments if comment.get('is_bot', False))
-            
-    #         insights = {
-    #             'subreddit': subreddit,
-    #             'date_range': {
-    #                 'start': start_date.isoformat(),
-    #                 'end': end_date.isoformat()
-    #             },
-    #             'statistics': {
-    #                 'total_posts': total_posts,
-    #                 'total_comments': total_comments,
-    #                 'total_score': total_score,
-    #                 'avg_score': avg_score,
-    #                 'bot_posts': bot_posts,
-    #                 'bot_comments': bot_comments,
-    #                 'human_posts': total_posts - bot_posts,
-    #                 'human_comments': total_comments - bot_comments
-    #             },
-    #             'posts': posts,
-    #             'comments': comments
-    #         }
-            
-    #         logger.info(f"Generated insights for {subreddit}: {total_posts} posts, {total_comments} comments")
-    #         return insights
-    #     except Exception as e:
-    #         logger.error(f"Failed to get topic insights: {e}")
-    #         raise
-
-# Example usage and testing
-if __name__ == "__main__":
-    # Test the database connection
-    try:
-        db_manager = RedditDataManager()
-        print("Database connection successful!")
-        
-        # Test inserting a sample post
-        sample_post = {
-            'id': 'test123',
-            'title': 'Test Post',
-            'subreddit': 'test',
-            'created_utc': 1640995200,  # 2022-01-01
-            'score': 10,
-            'num_comments': 5,
-            'author': 'testuser',
-            'embedding': [0.1] * 384  # Dummy embedding
-        }
-        
-        # Uncomment to test insertion
-        # post_id = db_manager.insert_post(sample_post)
-        # print(f"Inserted post with ID: {post_id}")
-        
-    except Exception as e:
-        print(f"Database test failed: {e}")
-    finally:
-        if 'db_manager' in locals():
-            db_manager.mongo.close()
