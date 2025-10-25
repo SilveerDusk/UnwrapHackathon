@@ -1,46 +1,35 @@
 import json
 from collections import defaultdict
 
-# Load your JSON
-with open("comment_example.json") as f:
-    data = json.load(f)
-
-# Flatten posts/comments recursively
 def flatten_items(items, feature_counts, empty_counts):
+  """Recursively flatten posts/comments and count features."""
   for item in items:
     d = item.get("data", {})
     for k, v in d.items():
       feature_counts[k] += 1
       if v in (None, "", [], {}):
         empty_counts[k] += 1
-      
+
     # Recursively process comments
     if "replies" in d and isinstance(d["replies"], dict):
       replies = d["replies"].get("data", {}).get("children", [])
       flatten_items(replies, feature_counts, empty_counts)
 
-feature_counts = defaultdict(int)
-empty_counts = defaultdict(int)
+def compute_empty_ratios(data):
+  """Compute empty ratios for features in the JSON data."""
+  feature_counts = defaultdict(int)
+  empty_counts = defaultdict(int)
 
-# Top-level Listings
-for listing in data:
-  children = listing.get("data", {}).get("children", [])
-  flatten_items(children, feature_counts, empty_counts)
+  # Top-level Listings
+  for listing in data:
+    children = listing.get("data", {}).get("children", [])
+    flatten_items(children, feature_counts, empty_counts)
 
-# Compute empty ratios
-empty_ratios = {k: empty_counts[k]/feature_counts[k] for k in feature_counts}
-
-# List features and empty ratios
-for k, r in sorted(empty_ratios.items(), key=lambda x: -x[1]):
-  print(f"{k}: {r:.2f}")
-
-# Suggested removal: >80% empty or irrelevant fields
-features_to_remove = [k for k, r in empty_ratios.items() if r > 0.8]
-print("\nFeatures to remove:", features_to_remove)
-
+  empty_ratios = {k: empty_counts[k] / feature_counts[k] for k in feature_counts}
+  return empty_ratios
 
 def clean_item(item, features_to_remove):
-  """Recursively remove unwanted fields from a post/comment"""
+  """Recursively remove unwanted fields from a post/comment."""
   if "data" not in item:
     return
 
@@ -57,14 +46,37 @@ def clean_item(item, features_to_remove):
       clean_item(child, features_to_remove)
 
 def clean_json(data, features_to_remove):
+  """Clean the JSON data by removing unwanted fields."""
   for listing in data:
     children = listing.get("data", {}).get("children", [])
     for child in children:
       clean_item(child, features_to_remove)
   return data
 
-# Example usage
-cleaned_data = clean_json(data, features_to_remove)
+def suggest_features_to_remove(empty_ratios, threshold=0.8):
+  """Suggest features to remove based on empty ratios."""
+  features_to_remove = [k for k, r in empty_ratios.items() if r > threshold]
+  features_to_remove.extend([
+    "body_html", "subreddit_name_prefixed", "subreddit_type", "can_mod_post", "gilded", "saved", "collapsed", "author_patreon_flair", "can_gild", "author_premium", "score_hidden", "no_follow", "author_flair_type", "total_awards_received", "subreddit", "send_replies"
+  ])
+  return features_to_remove
 
-with open("reddit_cleaned.json", "w") as f:
-  json.dump(cleaned_data, f, indent=2)
+# Example usage functions
+
+def load_json(file_path):
+  """Load JSON data from a file."""
+  with open(file_path) as f:
+    return json.load(f)
+
+def save_json(data, file_path):
+  """Save JSON data to a file."""
+  with open(file_path, "w") as f:
+    json.dump(data, f, indent=2)
+
+__all__ = [
+  'compute_empty_ratios',
+  'suggest_features_to_remove',
+  'clean_json',
+  'load_json',
+  'save_json'
+]
