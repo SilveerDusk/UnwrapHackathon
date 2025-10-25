@@ -1,0 +1,40 @@
+import praw
+from dotenv import load_dotenv
+import os
+import pandas as pd
+
+load_dotenv()
+
+reddit = praw.Reddit(
+    client_id=os.getenv("CLIENT_ID"),
+    client_secret=os.getenv("CLIENT_SECRET"),
+    user_agent="bot detection unwrapathon"
+)
+
+
+subreddit_name = "BotBouncer"
+subreddit = reddit.subreddit(subreddit_name)
+
+data = []
+
+# Fetch recent posts
+for post in subreddit.new(limit=1000): 
+    title = post.title
+    flair = post.link_flair_text  # status of report
+    if "overview for" in title.lower() and flair: 
+        username = title.split("Overview for")[-1].strip()
+        status = flair.lower()  # "banned", "declined", ...
+        bot_label = (status == "banned" or status == "service")# True for banned, purged False otherwise
+        if (not (status in ["inactive","pending","retired","purged"])):
+            data.append({
+                "username": username,
+                "bot": bot_label,
+                "status": status
+            })
+
+# Make DataFrame
+df = pd.DataFrame(data)
+print(df.head())
+
+# Save to CSV
+df.to_csv("botbouncer_ground_truth.csv", index=False)

@@ -16,32 +16,42 @@ reddit = praw.Reddit(
     user_agent="bot detection unwrapathon"
 )
 
-def fetch_user_data(username, limit=50):
-    """Fetch user metadata, latest posts & comments."""
-    user = reddit.redditor(username)
+from prawcore.exceptions import NotFound, Forbidden, PrawcoreException
 
-    user_data = {
-        "username": username,
-        "created_utc": user.created_utc,
-        "link_karma": user.link_karma,
-        "comment_karma": user.comment_karma,
-        "posts": [],
-        "comments": []
-    }
+def fetch_user_data_safe(username, limit=50):
+    """Fetch user data; return None if user doesn't exist, suspended, or private."""
+    try:
+        user = reddit.redditor(username)
+        created = user.created_utc  # triggers actual fetch
+        user_data = {
+            "username": username,
+            "created_utc": created,
+            "link_karma": user.link_karma,
+            "comment_karma": user.comment_karma,
+            "posts": [],
+            "comments": []
+        }
 
-    for post in user.submissions.new(limit=limit):
-        user_data["posts"].append({
-            "created_utc": post.created_utc,
-            "subreddit": str(post.subreddit),
-            "score": post.score
-        })
-    for com in user.comments.new(limit=limit):
-        user_data["comments"].append({
-            "created_utc": com.created_utc,
-            "subreddit": str(com.subreddit),
-            "score": com.score
-        })
-    return user_data
+        for post in user.submissions.new(limit=limit):
+            user_data["posts"].append({
+                "created_utc": post.created_utc,
+                "subreddit": str(post.subreddit),
+                "score": post.score
+            })
+        for com in user.comments.new(limit=limit):
+            user_data["comments"].append({
+                "created_utc": com.created_utc,
+                "subreddit": str(com.subreddit),
+                "score": com.score
+            })
+        return user_data
+
+    except (NotFound, Forbidden):
+        # user doesn't exist or suspended/private
+        return None
+    except PrawcoreException as e:
+        print(f"[WARN] Could not fetch {username}: {e}")
+        return None
 
 from collections import Counter
 import re
@@ -184,7 +194,7 @@ def compute_bot_score(features):
     return min(1.0, score)
 
 def analyze_user(username):
-    data = fetch_user_data(username)
+    data = fetch_user_data_safe(username)
     features = compute_features(data)
     bot_score = compute_bot_score(features)
     return {
@@ -193,6 +203,12 @@ def analyze_user(username):
         "features": features
     }
 
+def generate_bot_score(username):
+    data = fetch_user_data_safe(username)
+    if data is None:
+        return None
+    features = compute_features(data)
+    return compute_bot_score(features)
 
 if __name__ == "__main__":
     test_user = input("Enter Reddit username to analyze: ")
