@@ -1,0 +1,26 @@
+# Core dependencies
+requests>=2.31.0
+python-dotenv>=1.0.0
+pymongo>=4.6.0
+
+# Machine Learning and Embeddings
+sentence-transformers>=2.2.2
+torch>=2.0.0
+numpy>=1.24.0
+
+# Reddit API (PRAW)
+praw>=7.7.1
+
+# Data processing
+pandas>=2.0.0
+
+# Web framework (for future API)
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# Environment and logging
+python-multipart>=0.0.6
+
+# Optional: For advanced NLP
+transformers>=4.35.0
+scikit-learn>=1.3.0
