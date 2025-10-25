@@ -198,9 +198,9 @@ class RedditDataManager:
         """
         try:
             # Generate query embedding
-            from reddit_scraper import RedditScraper
-            scraper = RedditScraper()
-            query_embedding = scraper.generate_embedding(query)
+            from reddit_processor import RedditProcessor
+            processor = RedditProcessor()
+            query_embedding = processor.generate_embedding(query)
             
             # Search posts first
             posts_pipeline = [
@@ -275,9 +275,9 @@ class RedditDataManager:
         """
         try:
             # Generate query embedding
-            from reddit_scraper import RedditScraper
-            scraper = RedditScraper()
-            query_embedding = scraper.generate_embedding(query)
+            from reddit_processor import RedditProcessor
+            processor = RedditProcessor()
+            query_embedding = processor.generate_embedding(query)
             
             # Search posts first
             posts_pipeline = [
