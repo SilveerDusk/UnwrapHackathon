@@ -6,6 +6,8 @@ import time
 from datetime import datetime
 from collections import Counter
 import math
+import re
+from difflib import SequenceMatcher
 
 load_dotenv()
 
@@ -36,13 +38,16 @@ def fetch_user_data_safe(username, limit=50):
             user_data["posts"].append({
                 "created_utc": post.created_utc,
                 "subreddit": str(post.subreddit),
-                "score": post.score
+                "score": post.score,
+                "title": post.title,
+                "selftext": post.selftext
             })
         for com in user.comments.new(limit=limit):
             user_data["comments"].append({
                 "created_utc": com.created_utc,
                 "subreddit": str(com.subreddit),
-                "score": com.score
+                "score": com.score,
+                "body": com.body
             })
         return user_data
 
@@ -53,11 +58,6 @@ def fetch_user_data_safe(username, limit=50):
         print(f"[WARN] Could not fetch {username}: {e}")
         return None
 
-from collections import Counter
-import re
-from difflib import SequenceMatcher
-
-import re
 
 def clean_text(text: str) -> str:
     """Basic text normalization for Reddit posts/comments."""
@@ -70,9 +70,15 @@ def clean_text(text: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-def get_duplicate_content_ratio(items):
+def get_duplicate_content_ratio(items, content_key):
     """Compute ratio of near-duplicate comments/titles (0–1)."""
-    texts = [clean_text(i) for i in items if isinstance(i, str) and i.strip()]
+    texts = []
+    for item in items:
+        if isinstance(item, dict) and content_key in item:
+            text = item[content_key]
+            if text and text.strip():
+                texts.append(clean_text(text))
+    
     if len(texts) < 3:
         return 0.0
     
@@ -80,7 +86,7 @@ def get_duplicate_content_ratio(items):
     for i in range(len(texts)):
         for j in range(i+1, len(texts)):
             sim = SequenceMatcher(None, texts[i], texts[j]).ratio()
-            if sim > 0.8:  # consider “Thank you” and “Thanks!” same
+            if sim > 0.8:  # consider "Thank you" and "Thanks!" same
                 sim_scores.append(1)
             else:
                 sim_scores.append(0)
@@ -123,11 +129,11 @@ def compute_features(user_data):
     total_karma = user_data["link_karma"] + user_data["comment_karma"]
     post_to_karma_ratio = total_posts / (total_karma + 1e-6)
     # High ratio = suspicious
-    subreddit_diversity_score = 1 - min(subreddit_count / 5, 1.0)
+    post_to_karma_score = min(post_to_karma_ratio * 10, 1.0)
 
     # --- 6. Duplicate content ---
-    comment_dupe_ratio = get_duplicate_content_ratio(comments)
-    post_dupe_ratio = get_duplicate_content_ratio(posts)
+    comment_dupe_ratio = get_duplicate_content_ratio(comments, "body")
+    post_dupe_ratio = get_duplicate_content_ratio(posts, "title")
     duplicate_content_ratio = max(comment_dupe_ratio, post_dupe_ratio)
     duplicate_content_score = min(duplicate_content_ratio * 5, 1.0)
 
@@ -138,10 +144,12 @@ def compute_features(user_data):
 
     return {
         "age_score": age_score,
+        "age_days": age_days,
         "comment_to_post_score": comment_to_post_score,
         "subreddit_diversity_score": subreddit_diversity_score,
+        "subreddit_count": subreddit_count,
         "activity_spike_score": activity_spike_score,
-        "post_to_karma_score": post_to_karma_ratio,
+        "post_to_karma_score": post_to_karma_score,
         "duplicate_content_score": duplicate_content_score,
         "posts_per_day_score": posts_per_day_score,
     }
@@ -156,40 +164,43 @@ def subreddit_diversity_penalty(subreddit_count):
 
 # --- Heuristic scoring ---
 def compute_bot_score(features):
-
-    #weights
-    AGE_WEIGHT = 0.25
-    SR_DIVERSITY = 0.25
-    ACTIVITY_SPIKE = 0.1
-    PK_RATIO = 0.25
-    POST_PER_DAY = 0.15
-
-
+    """
+    Compute final bot score (0-1) from features.
+    Higher score = more likely to be a bot
+    """
+    # Weights
+    AGE_WEIGHT = 0.20
+    SR_DIVERSITY_WEIGHT = 0.20
+    ACTIVITY_SPIKE_WEIGHT = 0.15
+    PK_RATIO_WEIGHT = 0.15
+    POST_PER_DAY_WEIGHT = 0.15
+    DUPLICATE_CONTENT_WEIGHT = 0.15
 
     score = 0.0
 
-     # Age-based decay
-    score += (age_penalty(features["age_score"]) * AGE_WEIGHT)
+    # 1. Age-based penalty (younger accounts are more suspicious)
+    score += age_penalty(features["age_days"])
 
-    # Subreddit diversity penalty
-    score += (subreddit_diversity_penalty(features["subreddit_diversity_score"]) * SR_DIVERSITY)
+    # 2. Subreddit diversity penalty (fewer subreddits = more suspicious)
+    score += subreddit_diversity_penalty(features["subreddit_count"])
 
+    # 3. Activity spikes (sudden bursts of activity)
+    if features["activity_spike_score"] > 0:
+        score += ACTIVITY_SPIKE_WEIGHT
 
-    # 4. Activity spikes → +0.15
-    if features["activity_spike_score"]:
-        score += ACTIVITY_SPIKE
+    # 4. Post-to-karma ratio (high ratio = many posts with low engagement)
+    if features["post_to_karma_score"] > 0.05:
+        score += PK_RATIO_WEIGHT * min(features["post_to_karma_score"] * 2, 1.0)
 
-    # 5. Post-to-karma ratio unusually high → +0.15
-    if features["post_to_karma_score"] > 0.1:  # tweak threshold
-        score += PK_RATIO
+    # 5. Posting frequency (very high frequency is suspicious)
+    if features["posts_per_day_score"] > 0.5:  # More than 10 posts/day
+        score += POST_PER_DAY_WEIGHT * features["posts_per_day_score"]
 
-    # (Optional)
-    # 6. Posting rate > X per day → +0.25
-    if features["posts_per_day_score"] > 10:
-         score += POST_PER_DAY
+    # 6. Duplicate content detection (repetitive posts/comments)
+    score += DUPLICATE_CONTENT_WEIGHT * features["duplicate_content_score"]
 
-    # 7. GPT-based text analysis
-    # score += 0.2 * features["gpt_score"]
+    # 7. GPT-based text analysis (future enhancement)
+    # score += 0.2 * features.get("gpt_score", 0)
 
     return min(1.0, score)
 
