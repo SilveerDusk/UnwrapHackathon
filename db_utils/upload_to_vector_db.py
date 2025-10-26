@@ -11,7 +11,7 @@ def main():
         print("Starting Reddit data pipeline...")
         caller = RedditCaller()
         
-        subreddit_name = "uberdrivers"
+        subreddit_name = "SouthwestAirlines"
         number_of_posts = 200  # Example: Fetch 200 posts
 
         # Step 1: Fetch posts

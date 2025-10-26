@@ -281,7 +281,8 @@ async def generalize_insight_groups(insight_groups):
 
 def filter_raw_insights(raw_insights):
   user_scores = pd.read_parquet('../user_scores.parquet', engine="fastparquet")
-  bot_users = user_scores[user_scores['score'] > 0.7]['username'].tolist()
+  bot_users = user_scores[user_scores['score'] > 0.5]['username'].tolist()
+  print(f"Bot Users: {bot_users}")
 
   filtered_insights = []
   
