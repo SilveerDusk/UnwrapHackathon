@@ -32,7 +32,7 @@ async def create_insights(post_data):
       "post_title": title,
       "post_body": selftext,
       "data_posted": created_utc,
-      score: score,
+      "score": score,
       "num_comments": num_comments,
       "author": author,
       "url": url,
@@ -87,15 +87,15 @@ async def get_insights_for_subreddit(subreddit):
         }
       insights[summary]["mentions"].append(mentions[i])
   print(f"Generated {len(insights)} unique insights from posts and comments")
-  formated_insights = []
+  formatted_insights = []
   for insight, data in insights.items():
-    formated_insights.append({
+    formatted_insights.append({
       "insight": insight,
       "mentions": data["mentions"],
       "num_mentions": len(data["mentions"]),
     })
-  print(formated_insights)
-  return formated_insights
+  print(formatted_insights)
+  return formatted_insights
 
 async def main():
   """Main function - complete pipeline for fetching, processing, and storing Reddit data"""
