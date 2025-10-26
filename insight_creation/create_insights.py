@@ -298,6 +298,8 @@ def filter_raw_insights(raw_insights):
     insight['mentions'] = filtered_mentions
     insight['num_mentions'] = len(insight['mentions'])
 
+  return filtered_insights
+
 
 async def main():
   """Main function - complete pipeline for fetching, processing, and storing Reddit data"""
