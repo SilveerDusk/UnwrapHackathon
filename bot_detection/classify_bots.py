@@ -93,7 +93,7 @@ def get_all_authors_from_vectordb():
     db = RedditDataManager()
     posts = list(db.mongo.posts_collection.find())
     comments = list(db.mongo.comments_collection.find())
-    all_authors = db.get_all_authors(posts, comments)
+    all_authors = db.get_all_authors(posts) #, comments
     db.mongo.close()
     return all_authors
 
@@ -115,11 +115,18 @@ def classify_bots(usernames, parquet_file="user_scores.parquet"):
     results = []
 
     for uid in usernames:
-        # Make sure columns match training
-        user_row = user_df[user_df['username']==uid]
+        if uid in user_scores_df['username'].values:
+            continue
 
+        user_row = user_df[user_df['username']==uid]
         if user_row.empty:
-            continue  # skip if user not found
+            print(f"[WARN] Skipping {uid}: no feature data found.")
+            continue
+
+
+        if uid in user_scores_df['username'].values:
+            continue
+
 
         user_row = user_row.drop(columns=['username'])
 

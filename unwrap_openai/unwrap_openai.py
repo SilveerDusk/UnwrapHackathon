@@ -249,35 +249,45 @@ async def example_disabled_tools() -> None:
 
 async def summarize_post(post_content) -> None:
     """Example of basic chat completion without tools."""
-    messages = [
-        {
-            "role": "system",
-            "content": "You are a helpful assistant, who objectively summarizes a string of inputted text into an array containing the singular topic or a couple of topics of the text in under 3 words.\n\n Example: Advice for renting a vehicle to drive in the Orlando area\nHello everyone, I’ve been driving for Uber in the Orlando area, mostly (Disney and Universal), for a few months using my personal vehicle. I typically drive in the evenings to avoid dealing with to much traffic. My question is has anyone rented a vehicle through Ubers marketplace and is it worth it? I have been on the fence as I do enjoy driving but hate the wear and tear on my personal vehicle. It does however seem very costly to rent and my concern is I will be driving to only afford to keep the rental each week and not actually make money. I understand driving just in the evenings likely won’t be enough but it seems everytime I have tried to driving during the day I make very little due to traffic.\nOne other question I have is it worth renting an electric vehicle? How many hours can you actually drive on a single charge? It seems like having to find a charging station and wait for it to charge would be extremely annoying, costly and time consuming?\nThanks for the advice. Output: [Renting a vehicle, Driver Question, Orlando Area]",
-        },
-        {
-            "role": "user",
-            "content": f"Please summarize the following post content:\n\n{post_content}",
-        },
-    ]
 
-    response = await create_openai_completion(messages)
-    return response.choices[0].message.content
+    try:
+
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant, who objectively summarizes a string of inputted text into an array containing the singular topic or a couple of topics of the text in under 3 words.\n\n Example: Advice for renting a vehicle to drive in the Orlando area\nHello everyone, I’ve been driving for Uber in the Orlando area, mostly (Disney and Universal), for a few months using my personal vehicle. I typically drive in the evenings to avoid dealing with to much traffic. My question is has anyone rented a vehicle through Ubers marketplace and is it worth it? I have been on the fence as I do enjoy driving but hate the wear and tear on my personal vehicle. It does however seem very costly to rent and my concern is I will be driving to only afford to keep the rental each week and not actually make money. I understand driving just in the evenings likely won’t be enough but it seems everytime I have tried to driving during the day I make very little due to traffic.\nOne other question I have is it worth renting an electric vehicle? How many hours can you actually drive on a single charge? It seems like having to find a charging station and wait for it to charge would be extremely annoying, costly and time consuming?\nThanks for the advice. Output: [Renting a vehicle, Driver Question, Orlando Area]",
+            },
+            {
+                "role": "user",
+                "content": f"Please summarize the following post content:\n\n{post_content}",
+            },
+        ]
+
+        response = await create_openai_completion(messages)
+        return response.choices[0].message.content
+    
+    except:
+        return "[]"
+    
 
 async def summarize_comments(text) -> None:
     """Example of basic chat completion without tools."""
-    messages = [
-        {
-            "role": "system",
-            "content": "You are a helpful assistant, who objectively compares a posts text to the array of comments on the post and provides a one word sentiment analysis of whether the comments are typically agree, disagree, or neutral towards the post content.\n\n Example: Post: cancelling rides gets rid of surge now?\nis this market dependent? in north NJ and I just lost my surge by accepting and canceling a ride, never has this been the case before.\n\nComments: [\"I noticed that too. I accepted a ride in a 1.8x surge area and then canceled it, and the surge disappeared for me as well.\", \"Yeah, I think it's a new tactic Uber is using to prevent drivers from gaming the system. Kinda annoying though.\", \"I haven't experienced this yet, but it makes sense. Uber wants to ensure that drivers are actually completing rides during surge pricing.\", \"This is frustrating. I rely on surge pricing to make decent money during peak hours, and now it feels like a gamble every time I accept a ride.\", \"I wonder if this is just a temporary glitch or if Uber has officially changed their policy on surge pricing.\", \"I've been driving for a while and haven't seen this happen before. It could be specific to certain areas or times.\", \"It's possible that Uber is trying to discourage drivers from accepting rides just for the surge and then canceling them. Makes sense from their perspective.\", \"I think it's important for drivers to be aware of this change so they can adjust their strategies accordingly.\", \"Has anyone else experienced this in different cities or is it just happening in NJ?\", \"Overall, it seems like Uber is tightening their rules around surge pricing to ensure fairness for both drivers and riders.\"]\n\nOutput: Agree",
-        },
-        {
-            "role": "user",
-            "content": f"Please analyze the following post and comments:\n\n{text}",
-        },
-    ]
+    try:
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant, who objectively compares a posts text to the array of comments on the post and provides a one word sentiment analysis of whether the comments are typically agree, disagree, or neutral towards the post content.\n\n Example: Post: cancelling rides gets rid of surge now?\nis this market dependent? in north NJ and I just lost my surge by accepting and canceling a ride, never has this been the case before.\n\nComments: [\"I noticed that too. I accepted a ride in a 1.8x surge area and then canceled it, and the surge disappeared for me as well.\", \"Yeah, I think it's a new tactic Uber is using to prevent drivers from gaming the system. Kinda annoying though.\", \"I haven't experienced this yet, but it makes sense. Uber wants to ensure that drivers are actually completing rides during surge pricing.\", \"This is frustrating. I rely on surge pricing to make decent money during peak hours, and now it feels like a gamble every time I accept a ride.\", \"I wonder if this is just a temporary glitch or if Uber has officially changed their policy on surge pricing.\", \"I've been driving for a while and haven't seen this happen before. It could be specific to certain areas or times.\", \"It's possible that Uber is trying to discourage drivers from accepting rides just for the surge and then canceling them. Makes sense from their perspective.\", \"I think it's important for drivers to be aware of this change so they can adjust their strategies accordingly.\", \"Has anyone else experienced this in different cities or is it just happening in NJ?\", \"Overall, it seems like Uber is tightening their rules around surge pricing to ensure fairness for both drivers and riders.\"]\n\nOutput: Agree",
+            },
+            {
+                "role": "user",
+                "content": f"Please analyze the following post and comments:\n\n{text}",
+            },
+        ]
 
-    response = await create_openai_completion(messages)
-    return response.choices[0].message.content
+        response = await create_openai_completion(messages)
+        return response.choices[0].message.content
+    except:
+        return "N/A"
 
 async def generalize_insights(insight_data):
     """Generalize multiple similar insights into one broader insight"""
