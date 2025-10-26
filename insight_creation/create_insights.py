@@ -110,7 +110,7 @@ def filter_raw_insights(raw_insights):
       if mention['author'] not in bot_users:
         filtered_mentions.append(mention)
     insight['mentions'] = filtered_mentions
-    insight['num_mentions'] = len(insight['mention'])
+    insight['num_mentions'] = len(insight['mentions'])
 
 
 async def main():

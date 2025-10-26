@@ -24,6 +24,8 @@ python-multipart>=0.0.6
 # Optional: For advanced NLP
 transformers>=4.35.0
 scikit-learn
+fastparquet
+pyarrow
 umap-learn>=1.3.0
 
 # Visualization dependencies
