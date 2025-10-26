@@ -115,12 +115,18 @@ def classify_bots(usernames, parquet_file="user_scores.parquet"):
     results = []
 
     for uid in usernames:
-        # Make sure columns match training
+        if uid in user_scores_df['username'].values:
+            continue
+
         user_row = user_df[user_df['username']==uid]
+        if user_row.empty:
+            print(f"[WARN] Skipping {uid}: no feature data found.")
+            continue
+
 
         if uid in user_scores_df['username'].values:
             continue
-            continue
+
 
         user_row = user_row.drop(columns=['username'])
 
