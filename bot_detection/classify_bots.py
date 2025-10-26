@@ -45,17 +45,27 @@ def generate_user_table(usernames, parquet_file="users.parquet") -> None:
         existing_df = pd.DataFrame()
         existing_usernames = set()
 
+    total = len(usernames)
+    print(f"Users to be Processed: {total}")
+
+    n = 0
+
     for uid in usernames:
         if uid in existing_usernames:
             continue  # skip duplicates
 
         usr_feats = analyze_user(uid)
-        print(uid)
-        print(usr_feats)
+        #print(uid)
+        #print(usr_feats)
 
         if usr_feats is not None:
             usr_feats['username'] = uid
             results.append(usr_feats)
+
+        if n % 100 == 0:
+            print(f"{n/total}% complete")
+
+        n += 1
     
     print(f"Results: {results}")
 
@@ -72,6 +82,8 @@ def generate_user_table(usernames, parquet_file="users.parquet") -> None:
         user_df = new_users_df
 
     # Save back to Parquet
+    user_df.to_parquet(parquet_file, index=False)
+
 
 def get_all_authors_from_vectordb():
     """
@@ -86,8 +98,10 @@ def get_all_authors_from_vectordb():
     return all_authors
 
 def classify_bots(usernames, parquet_file="user_scores.parquet"):
+    print("Building Score Tablle...")
 
-    rf_pipeline = joblib.load("bot_detector.pkl")
+    #rf_pipeline = joblib.load("bot_detector.pkl")
+    rf_pipeline = joblib.load("bot_detection/bot_detector.pkl")
 
     # check if user exists
     if os.path.exists(parquet_file):
@@ -129,6 +143,7 @@ def classify_bots(usernames, parquet_file="user_scores.parquet"):
     user_scores_df.to_parquet(parquet_file, index=False)
         #print(f"Predicted bot probability: {bot_prob:.3f}")
         #print(f"Predicted label: {'Bot' if is_bot else 'Human'}")
+    print("Done!")
 
 
 def fetch_user_data_safe(username, limit=50):
@@ -137,7 +152,7 @@ def fetch_user_data_safe(username, limit=50):
 
         # If user doesn't exist or is suspended, they won't have created_utc
         if not hasattr(user, "created_utc"):
-            print(f"⚠️ Skipping user '{username}' (no created_utc — likely suspended or deleted)")
+            print(f"Skipping user '{username}' (no created_utc — likely suspended or deleted)")
             return None
 
         created = user.created_utc
