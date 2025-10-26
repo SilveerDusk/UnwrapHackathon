@@ -7,6 +7,7 @@ from datetime import datetime
 from collections import Counter
 import math
 
+
 load_dotenv()
 
 # --- Reddit API setup ---

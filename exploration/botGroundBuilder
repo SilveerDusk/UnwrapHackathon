@@ -1,0 +1,205 @@
+import praw
+from dotenv import load_dotenv
+import os
+import pandas as pd
+import numpy as np
+import time
+from datetime import datetime
+from collections import Counter
+import math
+
+load_dotenv()
+
+reddit = praw.Reddit(
+    client_id=os.getenv("CLIENT_ID"),
+    client_secret=os.getenv("CLIENT_SECRET"),
+    user_agent="bot detection unwrapathon"
+)
+
+subreddit_name = "BotBouncer"
+subreddit = reddit.subreddit(subreddit_name)
+
+data = []
+
+# Fetch recent posts
+for post in subreddit.new(limit=1000): 
+    title = post.title
+    flair = post.link_flair_text  # status of report
+    if "overview for" in title.lower() and flair: 
+        username = title.split("Overview for")[-1].strip()
+        status = flair.lower()  # "banned", "declined", ...
+        bot_label = (status == "banned" or status == "service")# True for banned, purged False otherwise
+        if (not (status in ["inactive","pending","retired","purged"])):
+            data.append({
+                "username": username,
+                "bot": bot_label,
+                "status": status
+            })
+
+# Make DataFrame
+botbouncer_ground = pd.DataFrame(data)
+print(botbouncer_ground.head())
+
+
+# Save to CSV
+botbouncer_ground.to_csv("botbouncer_ground_truth.csv", index=False)
+
+
+load_dotenv()
+
+# --- Reddit API setup ---
+reddit = praw.Reddit(
+    client_id=os.getenv("CLIENT_ID"),
+    client_secret=os.getenv("CLIENT_SECRET"),
+    user_agent="bot detection unwrapathon"
+)
+
+from prawcore.exceptions import NotFound, Forbidden, PrawcoreException
+
+def fetch_user_data_safe(username, limit=50):
+    try:
+        user = reddit.redditor(username)
+
+        # If user doesn't exist or is suspended, they won't have created_utc
+        if not hasattr(user, "created_utc"):
+            print(f"⚠️ Skipping user '{username}' (no created_utc — likely suspended or deleted)")
+            return None
+
+        created = user.created_utc
+        user_data = {
+            "username": username,
+            "created_utc": created,
+            "posts": [],
+            "comments": []
+        }
+
+        # Try fetching recent posts and comments safely
+        try:
+            for post in user.submissions.new(limit=limit):
+                user_data["posts"].append(post)
+        except Exception as e:
+            print(f"Post fetch error for {username}: {e}")
+
+        try:
+            for comment in user.comments.new(limit=limit):
+                user_data["comments"].append(comment)
+        except Exception as e:
+            print(f"Comment fetch error for {username}: {e}")
+
+        return user_data
+
+    except Exception as e:
+        print(f"Error fetching user {username}: {e}")
+        return None
+
+from collections import Counter
+import re
+from difflib import SequenceMatcher
+
+import re
+
+
+def compute_features_natural(user_data):
+    """Compute raw heuristic features for bot likelihood."""
+    now = time.time()
+    age_days = (now - user_data["created_utc"]) / (60 * 60 * 24)
+    posts = user_data["posts"]
+    comments = user_data["comments"]
+
+    # --- 1. Account age (in days) ---
+    age = age_days
+
+    # --- 2. Comment-to-post ratio ---
+    total_posts = max(len(posts), 1)
+    total_comments = len(comments)
+    comment_to_post_ratio = total_comments / total_posts
+
+    # --- 3. Subreddit diversity (number of unique subreddits) ---
+    subreddits = (
+        [p.subreddit.display_name for p in posts] +
+        [c.subreddit.display_name for c in comments]
+    )
+    subreddit_diversity = len(set(subreddits))
+
+    # --- 4. Activity spikes (boolean: 1 = spike detected, 0 = none) ---
+    times = sorted([x.created_utc for x in posts + comments])
+    activity_spike = 0
+    if len(times) > 5:
+        deltas = np.diff(times)
+        mean_gap = np.mean(deltas)
+        if np.any((deltas[:-1] > mean_gap * 5) & (deltas[1:] < mean_gap / 5)):
+            activity_spike = 1
+
+    # --- 5. Post-to-karma ratio ---
+    # If available, try to fetch karma dynamically
+    total_karma = 0
+    try:
+        user = reddit.redditor(user_data["username"])
+        total_karma = user.link_karma + user.comment_karma
+    except Exception:
+        total_karma = 0
+
+    post_to_karma_ratio = total_posts / max(total_karma, 1)
+
+
+    # --- 7. Posts per day (raw count per day) ---
+    posts_per_day = (len(posts) + len(comments)) / max(age_days, 1)
+
+    return {
+        "age_days": age,
+        "total_posts": total_posts,
+        "total_comments": total_comments,
+        "comment_to_post_ratio": comment_to_post_ratio,
+        "subreddit_diversity": subreddit_diversity,
+        "activity_spike": activity_spike,
+        "post_to_karma_ratio": post_to_karma_ratio,
+        "posts_per_day": posts_per_day,
+    }
+
+def analyze_user(username):
+    data = fetch_user_data_safe(username)
+    if data is None:
+        return None
+    try:
+        return compute_features_natural(data)
+    except Exception as e:
+        print(f"Error for {username}: {e}")
+        return None
+    
+results = []
+
+n = 0
+
+# Loop through each username
+for username in botbouncer_ground['username'].unique():
+
+    # Get the bot label for this username
+    bot_label = botbouncer_ground.loc[botbouncer_ground['username'] == username, 'bot'].iloc[0]
+
+    usr_feats = analyze_user(username)
+    
+    if usr_feats is not None:
+    
+        # Add username and label to the dict
+        usr_feats['username'] = username
+        usr_feats['bot'] = bot_label
+    
+        # Append to results list
+        results.append(usr_feats)
+
+    if n % 10 == 0:
+        print(username)
+        print(n/100)
+
+    n += 1
+
+# Convert all results into a DataFrame
+bot_features = pd.DataFrame(results)
+
+# Show a preview
+print("Created feature table with shape:", bot_features.shape)
+print(bot_features.head())
+
+
+bot_features.to_csv('bot_training.csv', index=False)
+
