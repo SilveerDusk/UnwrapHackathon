@@ -7,6 +7,7 @@ from db_utils.database import RedditDataManager
 from sklearn.metrics.pairwise import cosine_similarity
 from unwrap_openai.unwrap_openai import summarize_post, summarize_comments
 from tqdm import tqdm
+import pandas as pd
 
 dbManager = RedditDataManager()
 
@@ -97,11 +98,26 @@ async def get_insights_for_subreddit(subreddit):
   print(formatted_insights)
   return formatted_insights
 
+def filter_raw_insights(raw_insights):
+  user_scores = pd.read_parquet('../user_scores.parquet', engine="fastparquet")
+  bot_users = user_scores[user_scores['score'] > 0.7]['username'].tolist()
+
+  filtered_insights = raw_insights.copy()
+
+  for insight in filtered_insights:
+    filtered_mentions = []
+    for mention in insight['mentions']:
+      if mention['author'] not in bot_users:
+        filtered_mentions.append(mention)
+    insight['mentions'] = filtered_mentions
+    insight['num_mentions'] = len(insight['mention'])
+
+
 async def main():
   """Main function - complete pipeline for fetching, processing, and storing Reddit data"""
   for subreddit in ["uberdrivers"]:
     raw_insights = await get_insights_for_subreddit(subreddit)
-    filtered_insights = raw_insights
+    filtered_insights = filter_raw_insights(raw_insights)
     data_for_db = {
       "subreddit": subreddit,
       "raw_insights": raw_insights,
