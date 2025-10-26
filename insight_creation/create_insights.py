@@ -131,8 +131,6 @@ def group_similar_insights(insights, target_mentions=10):
             groups[cluster_id] = []
         groups[cluster_id].append(insight)
     
-    print("Grouped insights: ", groups)
-    
     return list(groups.values())
 
 async def generalize_insight_group(insight_group):
@@ -267,9 +265,6 @@ async def create_post_specific_insights(posts):
   # Convert to list
   post_insights = list(all_insights.values())
   
-  print(f"Created {len(post_insights)} unique insights from {len(posts)} posts")
-  print(f"Insight mention counts: {[insight['num_mentions'] for insight in post_insights[:10]]}")
-  
   return post_insights
 
 async def generalize_insight_groups(insight_groups):
@@ -288,16 +283,29 @@ def filter_raw_insights(raw_insights):
   user_scores = pd.read_parquet('../user_scores.parquet', engine="fastparquet")
   bot_users = user_scores[user_scores['score'] > 0.7]['username'].tolist()
 
-  filtered_insights = raw_insights.copy()
-
-  for insight in filtered_insights:
-    filtered_mentions = []
+  filtered_insights = []
+  
+  for insight in raw_insights:
+    # Create a deep copy of the insight
+    filtered_insight = {
+      "insight": insight["insight"],
+      "mentions": [],
+      "num_mentions": 0,
+      "original_insights": insight.get("original_insights", [])
+    }
+    
+    # Filter mentions
     for mention in insight['mentions']:
       if mention['author'] not in bot_users:
-        filtered_mentions.append(mention)
-    insight['mentions'] = filtered_mentions
-    insight['num_mentions'] = len(insight['mentions'])
-
+        filtered_insight['mentions'].append(mention)
+    
+    # Update mention count
+    filtered_insight['num_mentions'] = len(filtered_insight['mentions'])
+    
+    # Only include insights that still have mentions after filtering
+    if filtered_insight['num_mentions'] > 0:
+      filtered_insights.append(filtered_insight)
+  
   return filtered_insights
 
 
