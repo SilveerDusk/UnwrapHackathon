@@ -139,6 +139,44 @@ class RedditDataManager:
         except Exception as e:
             logger.error(f"Failed to insert comments batch: {e}")
             raise
+
+    def get_all_posts(self, subreddit: Optional[str] = None) -> List[Dict]:
+        """Get all posts, optionally filtered by subreddit"""
+        try:
+            query = {}
+            if subreddit:
+                query['subreddit'] = subreddit
+            
+            posts = list(self.mongo.posts_collection.find(query).sort('created_at', -1))
+            logger.info(f"Retrieved {len(posts)} posts for subreddit: {subreddit if subreddit else 'all'}")
+            return posts
+        except Exception as e:
+            logger.error(f"Failed to get all posts: {e}")
+            raise
+
+    def get_all_comments(self, subreddit: Optional[str] = None) -> List[Dict]:
+        """Get all comments, optionally filtered by subreddit"""
+        try:
+            query = {}
+            if subreddit:
+                query['subreddit'] = subreddit
+            
+            comments = list(self.mongo.comments_collection.find(query).sort('created_at', -1))
+            logger.info(f"Retrieved {len(comments)} comments for subreddit: {subreddit if subreddit else 'all'}")
+            return comments
+        except Exception as e:
+            logger.error(f"Failed to get all comments: {e}")
+            raise
+
+    def get_all_comments_for_post(self, post_id: str) -> List[Dict]:
+        """Get all comments for a specific post"""
+        try:
+            comments = list(self.mongo.comments_collection.find({"post_id": "t3_" + post_id}).sort('created_at', -1))
+            logger.info(f"Retrieved {len(comments)} comments for post ID: {post_id}")
+            return comments
+        except Exception as e:
+            logger.error(f"Failed to get comments for post {post_id}: {e}")
+            raise
     
     def get_posts_by_date_range(self, subreddit: str, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Get posts within a date range, optionally filtering out bot posts"""
