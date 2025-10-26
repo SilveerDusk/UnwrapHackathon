@@ -1,6 +1,7 @@
 import joblib
 import pandas as pd
 import praw
+import sys
 #from botGroundBuilder import analyze_user
 import os 
 from collections import Counter
@@ -17,6 +18,9 @@ import pandas as pd
 import os
 import time
 import numpy as np
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from db_utils.database import RedditDataManager
 
 
 load_dotenv()
@@ -68,10 +72,18 @@ def generate_user_table(usernames, parquet_file="users.parquet") -> None:
         user_df = new_users_df
 
     # Save back to Parquet
-    user_df.to_parquet(parquet_file, index=False)
 
-
-
+def get_all_authors_from_vectordb():
+    """
+    Fetch all posts and comments from the vector database,
+    and return a deduplicated list of all authors.
+    """
+    db = RedditDataManager()
+    posts = list(db.mongo.posts_collection.find())
+    comments = list(db.mongo.comments_collection.find())
+    all_authors = db.get_all_authors(posts, comments)
+    db.mongo.close()
+    return all_authors
 
 def classify_bots(usernames, parquet_file="user_scores.parquet"):
 
@@ -256,9 +268,9 @@ if __name__ == "__main__":
         print(f"Created empty Parquet file at {parquet_file2}")
 
 
-    test_user = input("Enter Reddit username to analyze: ")
-    generate_user_table([test_user])
-    classify_bots([test_user])
+    users = get_all_authors_from_vectordb()
+    generate_user_table(users)
+    classify_bots(users)
 
 
 

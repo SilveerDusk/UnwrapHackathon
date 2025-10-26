@@ -140,6 +140,26 @@ class RedditDataManager:
             logger.error(f"Failed to insert comments batch: {e}")
             raise
     
+    def get_all_authors(self, posts: List[dict], comments: List[dict]) -> List[str]:
+        """
+        Given lists of post and comment dicts, return a list of all author user IDs found.
+
+        Args:
+            posts (List[dict]): List of post dictionaries.
+            comments (List[dict]): List of comment dictionaries.
+
+        Returns:
+            List[str]: List of all author user IDs (deduplicated).
+        """
+        author_ids = set()
+        for item in posts:
+            author_id = item.get('author', 'unknown')
+            author_ids.add(author_id)
+        for item in comments:
+            author_id = item.get('author', 'unknown')
+            author_ids.add(author_id)
+        return list(author_ids)
+
     def get_posts_by_date_range(self, subreddit: str, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Get posts within a date range, optionally filtering out bot posts"""
         try:
