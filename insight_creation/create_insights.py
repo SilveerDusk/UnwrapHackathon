@@ -282,7 +282,6 @@ async def generalize_insight_groups(insight_groups):
 def filter_raw_insights(raw_insights):
   user_scores = pd.read_parquet('../user_scores.parquet', engine="fastparquet")
   bot_users = user_scores[user_scores['score'] > 0.5]['username'].tolist()
-  print(f"Bot Users: {bot_users}")
 
   filtered_insights = []
   
@@ -312,7 +311,7 @@ def filter_raw_insights(raw_insights):
 
 async def main():
   """Main function - complete pipeline for fetching, processing, and storing Reddit data"""
-  for subreddit in ["uberdrivers"]:
+  for subreddit in ["SouthwestAirlines"]:
     raw_insights = await get_insights_for_subreddit(subreddit)
     filtered_insights = filter_raw_insights(raw_insights)
     data_for_db = {
