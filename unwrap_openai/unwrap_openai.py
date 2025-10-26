@@ -289,6 +289,41 @@ async def summarize_comments(text) -> None:
     except:
         return "N/A"
 
+async def generalize_insights(insight_data):
+    """Generalize multiple similar insights into one broader insight"""
+    messages = [
+        {
+            "role": "system",
+            "content": """You are an expert at analyzing Reddit discussion patterns and creating broader insights.
+            
+            Given a list of similar insights with their mention counts, create ONE generalized insight that:
+            1. Captures the common theme across all insights
+            2. Is broader and more general than the individual insights
+            3. Is 3-8 words maximum
+            4. Uses general terms that would apply to similar discussions
+            5. Focuses on the main topic/theme, not specific details
+            
+            Examples of good generalized insights:
+            - "Driver earnings and pay rates"
+            - "Vehicle maintenance and repairs"
+            - "Passenger behavior complaints"
+            - "App technical issues"
+            - "Work schedule and hours"
+            - "Safety concerns and incidents"
+            - "Ride cancellation problems"
+            - "Market saturation concerns"
+            
+            Return only the generalized insight text, nothing else."""
+        },
+        {
+            "role": "user",
+            "content": f"Generalize these similar insights into one broader insight:\n\n{insight_data}"
+        },
+    ]
+
+    response = await create_openai_completion(messages)
+    return response.choices[0].message.content.strip()
+
 
 # async def main() -> None:
 #     """Run all example functions to demonstrate different OpenAI usage patterns."""
