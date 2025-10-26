@@ -21,6 +21,7 @@ class MongoDBConnection:
         self.db: Optional[Database] = None
         self.posts_collection: Optional[Collection] = None
         self.comments_collection: Optional[Collection] = None
+        self.insights_collection: Optional[Collection] = None
         self.connect()
     
     def connect(self):
@@ -34,6 +35,7 @@ class MongoDBConnection:
             self.db = self.client.reddit
             self.posts_collection = self.db.posts
             self.comments_collection = self.db.comments
+            self.insights_collection = self.db.insights
             
             # Test connection
             self.client.admin.command('ping')
@@ -82,6 +84,17 @@ class RedditDataManager:
             logger.error(f"Failed to generate embedding: {e}")
             return [0.0] * 384
     
+
+    def insert_insight(self, data: Dict) -> str:
+        """Insert an insight into the database"""
+        try:
+            result = self.mongo.insights_collection.insert_one(data)
+            return str(result.inserted_id)
+        except Exception as e:
+            logger.error(f"Failed to insert insight: {e}")
+            raise
+
+
     def insert_post(self, post_data: Dict) -> str:
         """Insert a single post into the database"""
         try:
