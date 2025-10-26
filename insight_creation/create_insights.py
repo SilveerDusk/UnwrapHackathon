@@ -6,6 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from db_utils.database import RedditDataManager
 from sklearn.metrics.pairwise import cosine_similarity
 from unwrap_openai.unwrap_openai import summarize_post, summarize_comments
+from tqdm import tqdm
 
 dbManager = RedditDataManager()
 
@@ -13,7 +14,7 @@ async def create_insights(post_data):
   post_summaries = []
   post_comments_summaries = []
   mentions = []
-  for post in post_data:
+  for post in tqdm(post_data):
     post_id = post.get("id")
     title = post.get("title")
     selftext = post.get("selftext")
@@ -38,7 +39,6 @@ async def create_insights(post_data):
       "url": url,
     })
     post_comments = dbManager.get_all_comments_for_post(post_id)
-    print(f"Creating insights for post ID {post_id} with {len(post_comments)} comments")
 
     comment_embeddings = [comment.get("embedding") for comment in post_comments if comment.get("embedding")]
     similarity_score = cosine_similarity(comment_embeddings, [embedding]) if comment_embeddings else []
@@ -75,11 +75,11 @@ async def get_insights_for_subreddit(subreddit):
   subreddit_posts = dbManager.get_all_posts(subreddit)
   print(f"Fetched {len(subreddit_posts)} posts from r/uberdrivers for insight creation")
 
-  post_summaries, post_comments_summaries, mentions = await create_insights(subreddit_posts[:30])
+  post_summaries, post_comments_summaries, mentions = await create_insights(subreddit_posts)
   print(post_summaries, post_comments_summaries)
   insights = {}
   for i in range(len(post_summaries)):
-    print(post_summaries[i])
+    #print(post_summaries[i])
     for summary in post_summaries[i]:
       if summary not in insights:
         insights[summary] = {
@@ -101,19 +101,13 @@ async def main():
   """Main function - complete pipeline for fetching, processing, and storing Reddit data"""
   for subreddit in ["uberdrivers"]:
     raw_insights = await get_insights_for_subreddit(subreddit)
-    filtered_insights = []
+    filtered_insights = raw_insights
     data_for_db = {
       "subreddit": subreddit,
       "raw_insights": raw_insights,
       "filtered_insights": filtered_insights,
     }
     dbManager.insert_insight(data_for_db)
-  
-
-
-  
-
-
 
 if __name__ == "__main__":
   asyncio.run(main())
