@@ -93,7 +93,7 @@ def get_all_authors_from_vectordb():
     db = RedditDataManager()
     posts = list(db.mongo.posts_collection.find())
     comments = list(db.mongo.comments_collection.find())
-    all_authors = db.get_all_authors(posts, comments)
+    all_authors = db.get_all_authors(posts) #, comments
     db.mongo.close()
     return all_authors
 

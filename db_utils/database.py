@@ -191,7 +191,7 @@ class RedditDataManager:
             logger.error(f"Failed to get comments for post {post_id}: {e}")
             raise
     
-    def get_all_authors(self, posts: List[dict], comments: List[dict]) -> List[str]:
+    def get_all_authors(self, posts: List[dict]) -> List[str]: #, comments: List[dict]
         """
         Given lists of post and comment dicts, return a list of all author user IDs found.
 
@@ -206,9 +206,9 @@ class RedditDataManager:
         for item in posts:
             author_id = item.get('author', 'unknown')
             author_ids.add(author_id)
-        for item in comments:
-            author_id = item.get('author', 'unknown')
-            author_ids.add(author_id)
+        #for item in comments:
+            #author_id = item.get('author', 'unknown')
+            #author_ids.add(author_id)
         return list(author_ids)
 
     def get_posts_by_date_range(self, subreddit: str, start_date: datetime, end_date: datetime) -> List[Dict]:
