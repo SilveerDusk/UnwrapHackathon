@@ -21,6 +21,7 @@ class MongoDBConnection:
         self.db: Optional[Database] = None
         self.posts_collection: Optional[Collection] = None
         self.comments_collection: Optional[Collection] = None
+        self.insights_collection: Optional[Collection] = None
         self.connect()
     
     def connect(self):
@@ -34,6 +35,7 @@ class MongoDBConnection:
             self.db = self.client.reddit
             self.posts_collection = self.db.posts
             self.comments_collection = self.db.comments
+            self.insights_collection = self.db.insights
             
             # Test connection
             self.client.admin.command('ping')
@@ -82,6 +84,17 @@ class RedditDataManager:
             logger.error(f"Failed to generate embedding: {e}")
             return [0.0] * 384
     
+
+    def insert_insight(self, data: Dict) -> str:
+        """Insert an insight into the database"""
+        try:
+            result = self.mongo.insights_collection.insert_one(data)
+            return str(result.inserted_id)
+        except Exception as e:
+            logger.error(f"Failed to insert insight: {e}")
+            raise
+
+
     def insert_post(self, post_data: Dict) -> str:
         """Insert a single post into the database"""
         try:
@@ -138,6 +151,44 @@ class RedditDataManager:
             return [str(id) for id in result.inserted_ids]
         except Exception as e:
             logger.error(f"Failed to insert comments batch: {e}")
+            raise
+
+    def get_all_posts(self, subreddit: Optional[str] = None) -> List[Dict]:
+        """Get all posts, optionally filtered by subreddit"""
+        try:
+            query = {}
+            if subreddit:
+                query['subreddit'] = subreddit
+            
+            posts = list(self.mongo.posts_collection.find(query).sort('created_at', -1))
+            logger.info(f"Retrieved {len(posts)} posts for subreddit: {subreddit if subreddit else 'all'}")
+            return posts
+        except Exception as e:
+            logger.error(f"Failed to get all posts: {e}")
+            raise
+
+    def get_all_comments(self, subreddit: Optional[str] = None) -> List[Dict]:
+        """Get all comments, optionally filtered by subreddit"""
+        try:
+            query = {}
+            if subreddit:
+                query['subreddit'] = subreddit
+            
+            comments = list(self.mongo.comments_collection.find(query).sort('created_at', -1))
+            logger.info(f"Retrieved {len(comments)} comments for subreddit: {subreddit if subreddit else 'all'}")
+            return comments
+        except Exception as e:
+            logger.error(f"Failed to get all comments: {e}")
+            raise
+
+    def get_all_comments_for_post(self, post_id: str) -> List[Dict]:
+        """Get all comments for a specific post"""
+        try:
+            comments = list(self.mongo.comments_collection.find({"post_id": "t3_" + post_id}).sort('created_at', -1))
+            logger.info(f"Retrieved {len(comments)} comments for post ID: {post_id}")
+            return comments
+        except Exception as e:
+            logger.error(f"Failed to get comments for post {post_id}: {e}")
             raise
     
     def get_all_authors(self, posts: List[dict], comments: List[dict]) -> List[str]:
